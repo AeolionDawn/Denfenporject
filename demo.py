@@ -7,10 +7,10 @@ import urllib.request
 from utils import pause
 from utils import press_any_key_exit
 
-from keras.models import load_model
+# from keras.models import load_model
 
 from distillation import train_distillation
-from adversarial_training import Adversarial_training
+# from adversarial_training import Adversarial_training
 # 选取数据集
 from cleverhans.dataset import MNIST
 import dataset_analysis as da
@@ -36,6 +36,11 @@ warnings.filterwarnings('ignore')
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
+load_model=tf.keras.models.load_model
+
+#direct read the trained model
+MODEL_PATH="models_test/tf_keras_mnist_model.h5"
+
 #hyper-parameter for distillation
 NB_EPOCHS_1 = 1
 BATCH_SIZE_1 = 128
@@ -53,34 +58,14 @@ LEARNING_RATE_2 = .001
 
 
 #模型的选择和加载
-class Model_select(object):
-    def __init__(self, model_path):
-        print("加载模型文件:")
-        self.model_path = model_path
-        print('the model path is:%s' % (model_path))
-        pause()
-        self.model = load_model(self.model_path)
-        print("加载完成")
+def model_select(model_path):
+    print("加载模型文件:")
+    print('the model path is:%s' % (model_path))
+    pause()
+    model = load_model(model_path)
+    print("加载完成")
 
-#数据集的选择和解析
-# class Dataset_select(object):
-#
-#     def __init__(self,dataset):
-#         self.train_data=dataset.train_data
-#         self.train_labels=dataset.train_labels
-#         self.test_data=dataset.test_data
-#         self.test_labels=dataset.test_labels
-#         self.validation_data=dataset.validation_data
-#         self.validation_labels=dataset.validation_labels
-#
-#         # self.train_generator=dataset.train_generator
-#         # self.test_generator=dataset.test_generator
-#         # self.validation_generator=dataset.validation_generator
-#         self.weight=dataset.weight
-#         self.height=dataset.height
-#         self.nchannels =dataset.nchannels
-#         self.image_size = dataset.weight
-#         self.nb_classes = dataset.nb_classes
+    return  model
 
 def model_robust_strengthen(model,model_path,dataset):
     print("请选择神经网络鲁棒性增强的方法:")
@@ -96,7 +81,7 @@ def model_robust_strengthen(model,model_path,dataset):
             return defenseModel,model_up_time
         elif choice=='2':
             print("开始对模型进行对抗训练防御增强")
-            Adversarial_training(model,dataset,learning_rate=.001,batch_size=128,nb_epochs=6)
+            # Adversarial_training(model,dataset,learning_rate=.001,batch_size=128,nb_epochs=6)
             break
         elif choice=='3':
             print("开始对对抗样本进行comdefend图像压缩")
@@ -125,18 +110,22 @@ def main(args=None):
     pause()
     press_any_key_exit("任意键以继续\n")
 
-    Model = Model_select('models/keras_mnist_trained_model.h5')  # 输入模型路径
+    model = model_select(Flags.model_path)  # 输入模型路径
 
+    #如果重新训练模型
     # dataset_1=Dataset_select(dap.Setup_mnist_fashion())#数据集处理方法修改,输入数据集路径
     # dataset=Dataset_select(da.Setup_mnist())#选择数据集
-    dataset = da.Setup_mnist(train_start=0, train_end=30000, test_start=0, test_end=10000)
+    data = da.Setup_mnist(train_start=0, train_end=30000, test_start=0, test_end=10000)
     dataset_test = da.Setup_mnist(train_start=0, train_end=60000, test_start=0, test_end=10000)
 
-    # model_defend_display,model_up_time=model_robust_strengthen(Model.model, Model.model_path,dataset)#模型防御方法选择
+    model_defend_display,model_up_time=model_robust_strengthen(model, Flags.model_path,data)#模型防御方法选择
 
-    model_defend = load_model('./models/keras_mnist_trained_model_student_20.h5')
+    #如果不训练，单独读取某个以训练好的模型
+    # model_path=Flags.model_path
+    # model_defend = load_model(model_path)
 
-    eval = evaluation(Model.model, dataset_test, model_defend, fgsm)
+    #测试防御效果
+    # eval = evaluation(Model.model, dataset_test, model_defend, fgsm)
 
     # 界面展示
     # UI.defense_display(dataset_test,eval.preds1,eval.preds2,model_up_time,eval.x_adv1)
@@ -144,6 +133,10 @@ def main(args=None):
 
 
 if __name__=="__main__":
+
+    flags.DEFINE_string('model_path', MODEL_PATH,
+                       'direct read the trained model')
+
     flags.DEFINE_integer('nb_epochs_1', NB_EPOCHS_1,
                          'Number of epochs to train model')
     flags.DEFINE_integer('batch_size_1', BATCH_SIZE_1, 'Size of training batches')

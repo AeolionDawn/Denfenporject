@@ -3,20 +3,7 @@
 # author：ZhangJinYun lbert time:19-7-6
 
 
-
-import numpy as np
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Conv2D, MaxPooling2D
-from keras.optimizers import SGD
-from keras.models import load_model
-import keras
-import keras.backend as K
-from dataset_analysis import Setup_mnist
-from dataset_analysis import Setup_mnist_fashion
-from dataset_analysis import Setup_cifar10
-from  BIM import BIM
-from fgsm import fgsm
+from tensorflow.python import keras
 
 
 import tensorflow as tf
@@ -95,16 +82,15 @@ def train_distillation(model, data, file_name, num_epochs=10, batch_size=128, tr
     #     else:
     #         print('请输入正确的选择!')
 
-def train_again(model_select,data, file_name, num_epochs=50, batch_size=128, train_temp=1):
+def train_again(model,data, file_name, num_epochs=50, batch_size=128, train_temp=1):
 
-    model=model_select.model
     # model = Model(model.input, model.layer[]);
 
     def fn(correct, predicted):
         return tf.nn.softmax_cross_entropy_with_logits(labels=correct,
                                                        logits=predicted/train_temp)
 
-    sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = tf.keras.optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
 
     model.compile(loss=fn,
                   optimizer=sgd,
@@ -123,7 +109,7 @@ def train_again(model_select,data, file_name, num_epochs=50, batch_size=128, tra
               nb_epoch=num_epochs,
               shuffle=True)
 
-    model.compile(loss=keras.losses.categorical_crossentropy,
+    model.compile(loss='categorical_crossentropy',
                   optimizer=sgd,
                   metrics=['accuracy'])
 
