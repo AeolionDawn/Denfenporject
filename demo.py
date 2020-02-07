@@ -10,9 +10,9 @@ from utils import press_any_key_exit
 # from keras.models import load_model
 
 from distillation import train_distillation
-# from adversarial_training import Adversarial_training
+from adversarial_training import Adversarial_training
+
 # 选取数据集
-from cleverhans.dataset import MNIST
 import dataset_analysis as da
 import dataset_analysis_png as dap
 
@@ -27,7 +27,7 @@ import cv2
 import random
 
 from tensorflow.python.platform import app, flags
-Flags=flags.FLAGS
+FLAGS=flags.FLAGS
 
 import warnings
 
@@ -77,11 +77,11 @@ def model_robust_strengthen(model,model_path,dataset):
         choice=input('请输入对应序号：')
         if choice=='1':
             print("开始对模型进行蒸馏防御增强")
-            defenseModel,model_up_time=train_distillation(model, dataset, model_path, num_epochs=Flags.nb_epochs_1, train_temp=Flags.train_temp)
+            defenseModel,model_up_time=train_distillation(model, dataset, model_path, nb_epochs=FLAGS.nb_epochs_1, train_temp=FLAGS.train_temp)
             return defenseModel,model_up_time
         elif choice=='2':
             print("开始对模型进行对抗训练防御增强")
-            # Adversarial_training(model,dataset,learning_rate=.001,batch_size=128,nb_epochs=6)
+            Adversarial_training(model, dataset, learning_rate=FLAGS.learning_rate_2, batch_size=FLAGS.batch_size_2, nb_epochs=FLAGS.nb_epochs_2)
             break
         elif choice=='3':
             print("开始对对抗样本进行comdefend图像压缩")
@@ -110,15 +110,18 @@ def main(args=None):
     pause()
     press_any_key_exit("任意键以继续\n")
 
-    model = model_select(Flags.model_path)  # 输入模型路径
+    #模型准备
+    model = model_select(FLAGS.model_path)  # 输入模型路径
 
     #如果重新训练模型
+
+        #数据集准备
     # dataset_1=Dataset_select(dap.Setup_mnist_fashion())#数据集处理方法修改,输入数据集路径
     # dataset=Dataset_select(da.Setup_mnist())#选择数据集
     data = da.Setup_mnist(train_start=0, train_end=30000, test_start=0, test_end=10000)
     dataset_test = da.Setup_mnist(train_start=0, train_end=60000, test_start=0, test_end=10000)
-
-    model_defend_display,model_up_time=model_robust_strengthen(model, Flags.model_path,data)#模型防御方法选择
+        #模型再训练
+    model_defend_display,model_up_time=model_robust_strengthen(model, FLAGS.model_path, data)#模型防御方法选择
 
     #如果不训练，单独读取某个以训练好的模型
     # model_path=Flags.model_path

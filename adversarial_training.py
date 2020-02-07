@@ -34,9 +34,9 @@ BATCH_SIZE = 128
 LEARNING_RATE = .001
 
 
-def adversarial_training(train_start=0, train_end=60000, test_start=0,
-                   test_end=10000, nb_epochs=NB_EPOCHS, batch_size=BATCH_SIZE,
-                   learning_rate=LEARNING_RATE, testing=False,
+def adversarial_training(model,dataset,train_start=0, train_end=60000, test_start=0,
+                   test_end=10000, nb_epochs=5, batch_size=128,
+                   learning_rate=.001, testing=False,
                    label_smoothing=0.1):
   """
   MNIST CleverHans tutorial
@@ -73,6 +73,11 @@ def adversarial_training(train_start=0, train_end=60000, test_start=0,
                 test_start=test_start, test_end=test_end)#--- MNIST() change
   x_train, y_train = mnist.get_set('train')
   x_test, y_test = mnist.get_set('test')
+
+  x_train=dataset.train_data
+  y_train=dataset.train_labels
+  x_test=dataset.test_data
+  y_test=dataset.test_labels
 
   # Obtain Image Parameters
   img_rows, img_cols, nchannels = x_train.shape[1:4]

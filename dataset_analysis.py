@@ -107,12 +107,16 @@ class Setup_mnist():
         self.test_data=test_data[test_start:test_end]
         self.test_labels=test_labels[test_start:test_end]
 
+        # confirm load
+        print('Training data has {} rows'.format(train_data.shape[0]))
+        print('Test data has {} rows'.format(test_data.shape[0]))
+
         self.weight, self.height, self.nchannels = self.train_data.shape[1:4]
         self.image_size = self.weight
         self.nb_classes = self.train_labels.shape[1]
 
 class Setup_mnist_fashion():
-    def __init__(self):
+    def __init__(self,train_start=0,train_end=60000,test_start=0,test_end=10000):
         # train_data = extract_data("data/fashion/train-images-idx3-ubyte.gz", 55000)
         # train_labels = extract_labels("data/fashion/train-labels-idx1-ubyte.gz", 55000)
         # self.test_data = extract_data("data/fashion/t10k-images-idx3-ubyte.gz", 10000)
@@ -134,14 +138,9 @@ class Setup_mnist_fashion():
         train_data,train_labels = data.train.images, data.train.labels
         test_data, test_labels = data.test.images, data.test.labels
 
+
         # reshape data to add colour channel
         img_rows, img_cols = 28, 28
-        train_data = train_data.reshape(train_data.shape[0], img_rows, img_cols).astype('float32')
-        test_data = test_data.reshape(test_data.shape[0], img_rows, img_cols).astype('float32')
-
-        # confirm load
-        print('Training data has {} rows'.format(train_data.shape[0]))
-        print('Test data has {} rows'.format(test_data.shape[0]))
 
         self.tag='mnist_fashion'
         self.classes = ['T-shirt/top',
@@ -167,11 +166,20 @@ class Setup_mnist_fashion():
                        'Bag':8,
                        'Ankle boot':9}
 
-        self.train_data = train_data.reshape(train_data.shape[0], img_rows, img_cols, 1).astype('float32')
-        self.test_data = test_data.reshape(test_data.shape[0], img_rows, img_cols, 1).astype('float32')
+        train_data = train_data.reshape(train_data.shape[0], img_rows, img_cols, 1).astype('float32')
+        test_data = test_data.reshape(test_data.shape[0], img_rows, img_cols, 1).astype('float32')
         # confirm data reshape
         # print('Training data shape: {}'.format(train_data.shape))
         # print('Test data shape: {}'.format(test_data.shape))
+
+        self.train_data = train_data[train_start:train_end]
+        self.train_labels = train_labels[train_start:train_end]
+        self.test_data = test_data[test_start:test_end]
+        self.test_labels = test_labels[test_start:test_end]
+
+        # confirm load
+        print('Training data has {} rows'.format(train_data.shape[0]))
+        print('Test data has {} rows'.format(test_data.shape[0]))
 
         # one-hot encode outputs
         self.nb_classes = 10

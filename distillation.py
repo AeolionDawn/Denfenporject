@@ -20,11 +20,11 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-def train_distillation(model, data, file_name, num_epochs=10, batch_size=128, train_temp=1):
+def train_distillation(model, data, file_name, nb_epochs=10, batch_size=128, train_temp=1):
     # now train the teacher at the given temperature
     print("开始训练教师模型:")
     timestart=time.time()
-    teacher = train_again(model, data, file_name.replace('.h5', "_teacher_"+str(num_epochs)+'.h5'), num_epochs, batch_size, train_temp)
+    teacher = train_again(model, data, file_name.replace('.h5', "_teacher_" + str(nb_epochs) + '.h5'), nb_epochs, batch_size, train_temp)
 
     # evaluate the labels at temperature t
     predicted = teacher.predict(data.train_data)
@@ -37,8 +37,8 @@ def train_distillation(model, data, file_name, num_epochs=10, batch_size=128, tr
     print("开始训练学生模型:")
     print('蒸馏温度：',train_temp)
 
-    file_name_new=file_name.replace('.h5', "_student_" + str(num_epochs) + '.h5')
-    student =train_again (model, data, file_name_new, num_epochs, batch_size, train_temp)#直接用软目标训练学生网络并进行预测
+    file_name_new=file_name.replace('.h5', "_student_" + str(nb_epochs) + '.h5')
+    student =train_again (model, data, file_name_new, nb_epochs, batch_size, train_temp)#直接用软目标训练学生网络并进行预测
 
     timeend=time.time()
     # and finally we predict at temperature 1
@@ -82,7 +82,7 @@ def train_distillation(model, data, file_name, num_epochs=10, batch_size=128, tr
     #     else:
     #         print('请输入正确的选择!')
 
-def train_again(model,data, file_name, num_epochs=50, batch_size=128, train_temp=1):
+def train_again(model, data, file_name, nb_epochs=50, batch_size=128, train_temp=1):
 
     # model = Model(model.input, model.layer[]);
 
@@ -106,7 +106,7 @@ def train_again(model,data, file_name, num_epochs=50, batch_size=128, train_temp
               batch_size=batch_size,
               validation_data=(data.validation_data, data.validation_labels),
               verbose=1,
-              nb_epoch=num_epochs,
+              nb_epoch=nb_epochs,
               shuffle=True)
 
     model.compile(loss='categorical_crossentropy',
