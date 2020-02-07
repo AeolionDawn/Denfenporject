@@ -7,27 +7,39 @@ import numpy as np
 import  gzip
 import zipfile
 from tensorflow.examples.tutorials.mnist import input_data
+import array
+import functools
+import gzip
+import operator
+import os
+import struct
+import tempfile
+import sys
+import tensorflow as tf
+
 from keras.utils import np_utils
 from keras.preprocessing.image import ImageDataGenerator
 
 
+utils=tf.keras.utils
 
 
-def extract_data(filename, num_images):
-    with gzip.open(filename) as bytestream:
-        bytestream.read(16)
-        buf = bytestream.read(num_images*28*28)
-        data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
-        data = (data / 255) - 0.5
-        data = data.reshape(num_images, 28, 28, 1)
-        return data
+# def extract_data(filename, num_images):
+#     with gzip.open(filename) as bytestream:
+#         bytestream.read(16)
+#         buf = bytestream.read(num_images*28*28)
+#         data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
+#         data = (data / 255) - 0.5
+#         data = data.reshape(num_images, 28, 28, 1)
+#         return data
+#
+# def extract_labels(filename, num_images):
+#     with gzip.open(filename) as bytestream:
+#         bytestream.read(8)
+#         buf = bytestream.read(1 * num_images)
+#         labels = np.frombuffer(buf, dtype=np.uint8)
+#     return (np.arange(10) == labels[:, None]).astype(np.float32)
 
-def extract_labels(filename, num_images):
-    with gzip.open(filename) as bytestream:
-        bytestream.read(8)
-        buf = bytestream.read(1 * num_images)
-        labels = np.frombuffer(buf, dtype=np.uint8)
-    return (np.arange(10) == labels[:, None]).astype(np.float32)
 
 def load_batch(fpath):
     f = open(fpath, "rb").read()
@@ -50,6 +62,77 @@ def unzip(dataset_path):
 
     zfile.close()
 
+def maybe_download_file(url, datadir=None, force=False):
+
+  try:
+    from urllib.request import urlretrieve
+  except ImportError:
+    from urllib import urlretrieve
+    #url下载文件地址，dest_file下载到本地的地址
+  def reporthook(a, b, c):
+    """
+            显示下载进度
+            :param a: 已经下载的数据块
+            :param b: 数据块的大小
+            :param c: 远程文件大小
+            :return: None
+            """
+    print("\rdownloading: %5.1f%%" % (a * b * 100.0 / c), end="")
+  if not datadir:
+    datadir = tempfile.gettempdir()
+  file_name = url[url.rfind("/")+1:]
+  dest_file = os.path.join(datadir, file_name)
+
+  #用isfile来判断目录下是否有已下载文件就行了
+  isfile = os.path.isfile(dest_file)
+
+  if force or not isfile:
+    urlretrieve(url, dest_file,reporthook=reporthook)
+  return dest_file
+
+
+def download_and_parse_mnist_file(file_name, datadir=None, force=False):
+
+  url = os.path.join('http://yann.lecun.com/exdb/mnist/', file_name)
+  file_name = maybe_download_file(url, datadir=datadir, force=force)
+
+  # Open the file and unzip it if necessary
+  if os.path.splitext(file_name)[1] == '.gz':
+    open_fn = gzip.open
+  else:
+    open_fn = open
+
+  # Parse the file
+  with open_fn(file_name, 'rb') as file_descriptor:
+    header = file_descriptor.read(4)
+    assert len(header) == 4
+
+    zeros, data_type, n_dims = struct.unpack('>HBB', header)
+    assert zeros == 0
+
+    hex_to_data_type = {
+        0x08: 'B',
+        0x09: 'b',
+        0x0b: 'h',
+        0x0c: 'i',
+        0x0d: 'f',
+        0x0e: 'd'}
+    data_type = hex_to_data_type[data_type]
+
+    # data_type unicode to ascii conversion (Python2 fix)
+    if sys.version_info[0] < 3:
+      data_type = data_type.encode('ascii', 'ignore')
+
+    dim_sizes = struct.unpack(
+        '>' + 'I' * n_dims,
+        file_descriptor.read(4 * n_dims))
+
+    data = array.array(data_type, file_descriptor.read())
+    data.byteswap()
+
+    desired_items = functools.reduce(operator.mul, dim_sizes)
+    assert len(data) == desired_items
+    return np.array(data).reshape(dim_sizes)
 
 class Setup_cifar10():
     def __init__(self):
@@ -83,11 +166,47 @@ class Setup_cifar10():
         self.nb_classes = self.train_labels.shape[1]
 
 class Setup_mnist():
-    def __init__(self,train_start=0,train_end=60000,test_start=0,test_end=10000):
-        train_data = extract_data("data/train-images.idx3-ubyte.gz", 60000)
-        train_labels = extract_labels("data/train-labels.idx1-ubyte.gz", 60000)
-        test_data = extract_data("data/t10k-images.idx3-ubyte.gz", 10000)
-        test_labels = extract_labels("data/t10k-labels.idx1-ubyte.gz", 10000)
+    def __init__(self,datadir='data',train_start=0,train_end=60000,test_start=0,test_end=10000):
+        # train_data = extract_data("data/train-images.idx3-ubyte.gz", 60000)
+        # train_labels = extract_labels("data/train-labels.idx1-ubyte.gz", 60000)
+        # test_data = extract_data("data/t10k-images.idx3-ubyte.gz", 10000)
+        # test_labels = extract_labels("data/t10k-labels.idx1-ubyte.gz", 10000)
+
+
+        """
+          Load and preprocess MNIST dataset
+          :param datadir: path to folder where data should be stored
+          :param train_start: index of first training set example
+          :param train_end: index of last training set example
+          :param test_start: index of first test set example
+          :param test_end: index of last test set example
+          :return: tuple of four arrays containing training data, training labels,
+                   testing data and testing labels.
+          """
+        assert isinstance(train_start, int)
+        assert isinstance(train_end, int)
+        assert isinstance(test_start, int)
+        assert isinstance(test_end, int)
+
+        X_train = download_and_parse_mnist_file(
+            'train-images.idx3-ubyte.gz', datadir=datadir) / 255.
+        Y_train = download_and_parse_mnist_file(
+            'train-labels.idx1-ubyte.gz', datadir=datadir)
+        X_test = download_and_parse_mnist_file(
+            't10k-images.idx3-ubyte.gz', datadir=datadir) / 255.
+        Y_test = download_and_parse_mnist_file(
+            't10k-labels.idx1-ubyte.gz', datadir=datadir)
+
+        X_train = np.expand_dims(X_train, -1)
+        X_test = np.expand_dims(X_test, -1)
+
+        Y_train = utils.to_categorical(Y_train, 10)
+        Y_test = utils.to_categorical(Y_test, 10)
+
+        train_data = X_train.astype('float32')
+        train_labels = Y_train.astype('float32')
+        test_data = X_test.astype('float32')
+        test_labels = Y_test.astype('float32')
 
         self.tag='mnist'
         self.classes=['0','1','2','3','4','5','6','7','8','9']
