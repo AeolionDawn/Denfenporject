@@ -22,8 +22,6 @@ from keras.preprocessing.image import ImageDataGenerator
 
 
 utils=tf.keras.utils
-
-
 # def extract_data(filename, num_images):
 #     with gzip.open(filename) as bytestream:
 #         bytestream.read(16)

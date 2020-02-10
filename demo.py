@@ -10,7 +10,7 @@ from utils import press_any_key_exit
 # from keras.models import load_model
 
 from distillation import train_distillation
-from adversarial_training import Adversarial_training
+from adversarial_training import adversarial_training
 
 # 选取数据集
 import dataset_analysis as da
@@ -26,20 +26,28 @@ from l2_attack import CarliniL2
 import cv2
 import random
 
-from tensorflow.python.platform import app, flags
+from tensorflow.python.platform import flags
 FLAGS=flags.FLAGS
 
-import warnings
+# import warnings
+#
+# warnings.filterwarnings('ignore')
 
-warnings.filterwarnings('ignore')
+# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+from keras.models import load_model
+# load_model=tf.keras.models.load_model
 
-load_model=tf.keras.models.load_model
 
-#direct read the trained model
+'''
+    统一更改参数
+'''
+#原始模型
 MODEL_PATH="models_test/tf_keras_mnist_model.h5"
+
+#增强模型
+MODEL_DEFEND_PATH="models_test/tf_keras_mnist_model_adv_training_1.h5"
 
 #hyper-parameter for distillation
 NB_EPOCHS_1 = 1
@@ -48,7 +56,7 @@ LEARNING_RATE_1 = .001
 TRAIN_TEMP=100
 
 #hyper-parameter for adversarial training
-NB_EPOCHS_2 = 5
+NB_EPOCHS_2 = 2
 BATCH_SIZE_2 = 128
 LEARNING_RATE_2 = .001
 
@@ -81,7 +89,9 @@ def model_robust_strengthen(model,model_path,dataset):
             return defenseModel,model_up_time
         elif choice=='2':
             print("开始对模型进行对抗训练防御增强")
-            Adversarial_training(model, dataset, learning_rate=FLAGS.learning_rate_2, batch_size=FLAGS.batch_size_2, nb_epochs=FLAGS.nb_epochs_2)
+            adversarial_training(model,dataset,model_path,nb_epochs=FLAGS.nb_epochs_2,
+                                 batch_size=FLAGS.batch_size_2,
+                                 learning_rate=FLAGS.learning_rate_2)
             break
         elif choice=='3':
             print("开始对对抗样本进行comdefend图像压缩")
@@ -118,17 +128,24 @@ def main(args=None):
         #数据集准备
     # dataset_1=Dataset_select(dap.Setup_mnist_fashion())#数据集处理方法修改,输入数据集路径
     # dataset=Dataset_select(da.Setup_mnist())#选择数据集
-    data = da.Setup_mnist(train_start=0, train_end=30000, test_start=0, test_end=10000)
-    dataset_test = da.Setup_mnist(train_start=0, train_end=60000, test_start=0, test_end=10000)
+    dataset = da.Setup_mnist(train_start=0, train_end=60000, test_start=0, test_end=10000)
         #模型再训练
-    model_defend_display,model_up_time=model_robust_strengthen(model, FLAGS.model_path, data)#模型防御方法选择
+    # model_defend_display,model_up_time=model_robust_strengthen(model, FLAGS.model_path, dataset)#模型防御方法选择
+    # model_defend,_=model_robust_strengthen(model, FLAGS.model_path, dataset)#模型防御方法选择
 
     #如果不训练，单独读取某个以训练好的模型
-    # model_path=Flags.model_path
-    # model_defend = load_model(model_path)
+    model_defend = model_select(FLAGS.model_defend_path)
 
     #测试防御效果
-    # eval = evaluation(Model.model, dataset_test, model_defend, fgsm)
+    eval = evaluation(model, dataset, model_defend, BIM)
+
+    origin_clean_acc = eval.model_clean_eval()
+
+    origin_adv_acc = eval.model_adv_eval()
+
+    strengthen_clean_acc = eval.model_defend_clean_eval()
+
+    strengthen_adv_acc = eval.model_defend_adv_eval()
 
     # 界面展示
     # UI.defense_display(dataset_test,eval.preds1,eval.preds2,model_up_time,eval.x_adv1)
@@ -139,6 +156,8 @@ if __name__=="__main__":
 
     flags.DEFINE_string('model_path', MODEL_PATH,
                        'direct read the trained model')
+    flags.DEFINE_string('model_defend_path', MODEL_DEFEND_PATH,
+                        'direct read the trained model')
 
     flags.DEFINE_integer('nb_epochs_1', NB_EPOCHS_1,
                          'Number of epochs to train model')

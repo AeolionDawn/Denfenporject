@@ -111,31 +111,31 @@ def fgsm(model,dataset):
 
         return x_adv,preds,loss,acc,timeConsume
 
-if __name__=='__main__':
-    img_rows = 28
-    img_cols = 28
-    channels = 1
-    img_number = 8
-
-    # inputs_save_dir = './images/temp/images_inputs_temp/mnist_train_'
-    # adv_save_dir_1 = './images/images_adv_test/'
-    # adv_save_dir_2 = './images/temp/images_adv_temp/adv_'
-
-    #数据集
-    data=da.Setup_mnist(test_start=0,test_end=10000)
-
-    #单张图片测试
-    # data=img_read(inputs_save_dir)
-
-    model=load_model('models/keras_mnist_trained_model.h5')
-    model_defend=load_model('models/keras_mnist_trained_model_student_20.h5')
-    # print('原样本分类正确率',model.evaluate(data.test_data,data.test_labels)[1])
-    # if not os.path.isdir(adv_save_dir):
-    #     os.makedirs(adv_save_dir)
-    # data1=img_read(adv_save_dir_1)
-    # data2=img_read(adv_save_dir_2)
-    x_adv,preds,loss,acc,timeConsume=fgsm(model, data)
-    print('----------------------')
-    x_adv1,preds1,loss1,acc1,timeConsume1=fgsm(model_defend,data)
-    # img_predict(model,data1)
-    # img_predict(model,data2)
+# if __name__=='__main__':
+#     img_rows = 28
+#     img_cols = 28
+#     channels = 1
+#     img_number = 8
+#
+#     # inputs_save_dir = './images/temp/images_inputs_temp/mnist_train_'
+#     # adv_save_dir_1 = './images/images_adv_test/'
+#     # adv_save_dir_2 = './images/temp/images_adv_temp/adv_'
+#
+#     #数据集
+#     data=da.Setup_mnist(test_start=0,test_end=10000)
+#
+#     #单张图片测试
+#     # data=img_read(inputs_save_dir)
+#
+#     model=load_model('models/keras_mnist_trained_model.h5')
+#     model_defend=load_model('models/keras_mnist_trained_model_student_20.h5')
+#     # print('原样本分类正确率',model.evaluate(data.test_data,data.test_labels)[1])
+#     # if not os.path.isdir(adv_save_dir):
+#     #     os.makedirs(adv_save_dir)
+#     # data1=img_read(adv_save_dir_1)
+#     # data2=img_read(adv_save_dir_2)
+#     x_adv,preds,loss,acc,timeConsume=fgsm(model, data)
+#     print('----------------------')
+#     x_adv1,preds1,loss1,acc1,timeConsume1=fgsm(model_defend,data)
+#     # img_predict(model,data1)
+#     # img_predict(model,data2)
